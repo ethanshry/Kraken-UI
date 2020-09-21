@@ -10,7 +10,8 @@
         "fetch": "^1.1.0",
         "graphql": "^15.3.0",
         "react": "^16.13.1",
-        "react-dom": "^16.13.1"
+        "react-dom": "^16.13.1",
+        "urql": "^1.10.0"
     },
     "scripts": {
         "start": "npm install && rimraf ./dist && parcel --no-cache index.html",

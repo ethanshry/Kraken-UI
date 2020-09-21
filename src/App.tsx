@@ -1,11 +1,24 @@
 import * as React from 'react'
 import { Typography, Menu, Layout } from 'antd'
 import { AppstoreOutlined, CloudServerOutlined, ClusterOutlined } from '@ant-design/icons'
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
+//import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
+import { createClient, Provider } from 'urql'
+import config from './config'
 
+/*
 const apolloClient = new ApolloClient({
     uri: 'https://localhost:8000/graphql',
     cache: new InMemoryCache(),
+})
+*/
+
+const client = createClient({
+    url: 'http://localhost:8000/graphql',
+    fetchOptions: () => {
+        return {
+            headers: {},
+        }
+    },
 })
 
 const { Header, Content, Footer, Sider } = Layout
@@ -32,10 +45,16 @@ class App extends React.Component<{}, AppState> {
 
     render() {
         return (
-            <ApolloProvider client={apolloClient}>
+            <Provider value={client}>
                 <Layout>
                     <Header>
-                        <Title style={{ lineHeight: '64px', marginBottom: 0 }}>
+                        <Title
+                            style={{
+                                lineHeight: '64px',
+                                marginBottom: 0,
+                                color: config.palette.textLight,
+                            }}
+                        >
                             Kraken App Deployment Platform
                         </Title>
                     </Header>
@@ -63,7 +82,7 @@ class App extends React.Component<{}, AppState> {
                         </Content>
                     </Layout>
                 </Layout>
-            </ApolloProvider>
+            </Provider>
         )
     }
 }
