@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Typography, Menu, Layout, Table } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
+import { Skeleton } from 'antd'
 
 const { Header, Content } = Layout
 
@@ -24,8 +25,9 @@ const DEPLOYMENTS = `
     }
 `
 
-export default function DeploymentsTable(data, fetching, error) {
-    if (fetching) return <LoadingOutlined />
+export default function DeploymentsTable(props) {
+    let { data, fetching, error } = props
+    if (fetching) return <Skeleton active />
     if (error) return <Text>{`${error.message}`}</Text>
 
     const columns = [
@@ -51,15 +53,5 @@ export default function DeploymentsTable(data, fetching, error) {
         },
     ]
 
-    let tableData = data.getDeployments.map((deployment, index) => {
-        return {
-            key: index,
-            id: deployment.id,
-            status: deployment.status,
-            srcUrl: deployment.srcUrl,
-            version: deployment.version,
-        }
-    })
-
-    return <Table dataSource={tableData} columns={columns} />
+    return <Table dataSource={data} columns={columns} />
 }
