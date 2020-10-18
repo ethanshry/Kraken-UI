@@ -26,6 +26,7 @@ const { Header, Content, Footer, Sider } = Layout
 const { Title, Text } = Typography
 
 import Nodes from './pages/Nodes'
+import Deployments from './pages/Deployments'
 
 interface AppState {
     activeTab: string
@@ -35,7 +36,7 @@ class App extends React.Component<{}, AppState> {
     constructor(props) {
         super(props)
         this.state = {
-            activeTab: 'nodes',
+            activeTab: 'deployments',
         }
     }
 
@@ -62,7 +63,7 @@ class App extends React.Component<{}, AppState> {
                         <Sider style={{ height: 'calc(100vh - 64px)' }}>
                             <Menu
                                 onClick={this.handleNavClick}
-                                defaultSelectedKeys={['nodes']}
+                                defaultSelectedKeys={['deployments']}
                                 style={{ height: '100%' }}
                             >
                                 <Menu.Item icon={<ClusterOutlined />} key="nodes">
@@ -78,7 +79,8 @@ class App extends React.Component<{}, AppState> {
                         </Sider>
                         <Content>
                             {this.state.activeTab === 'nodes' && <Nodes />}
-                            {this.state.activeTab !== 'nodes' && <Text>WIP</Text>}
+                            {this.state.activeTab === 'deployments' && <Deployments />}
+                            {this.state.activeTab === 'platform' && <Text>WIP</Text>}
                         </Content>
                     </Layout>
                 </Layout>
