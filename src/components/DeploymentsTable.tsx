@@ -51,6 +51,18 @@ export default function DeploymentsTable(props) {
             dataIndex: 'version',
             key: 'version',
         },
+        {
+            title: 'Update',
+            dataIndex: 'update',
+            key: 'update',
+            width: 50,
+        },
+        {
+            title: 'Destroy',
+            dataIndex: 'destroy',
+            key: 'destroy',
+            width: 50,
+        },
     ]
 
     return <Table dataSource={data} columns={columns} />

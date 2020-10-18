@@ -24,6 +24,8 @@ const NODES = `
     }
 `
 
+// TODO implement https://github.com/borisyankov/react-sparklines
+
 export default function NodesTable() {
     const [result, reexecuteQuery] = useQuery({
         query: NODES,
