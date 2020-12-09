@@ -1,15 +1,25 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table, Input, Alert, Button } from 'antd'
-import { Space, Card } from 'antd'
-import { LoadingOutlined, RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+    Typography,
+    Input,
+    Alert,
+    Button,
+    Row,
+    Col,
+    Select,
+    Steps,
+    Timeline,
+    Space,
+    Card,
+} from 'antd'
+import { RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
 import DeploymentsTable from '../components/DeploymentsTable'
-const { Header, Content } = Layout
-import { Steps } from 'antd'
-import { Row, Col } from 'antd'
-const { Step } = Steps
-const { Title, Text } = Typography
+import LogsTable from '../components/LogsTable'
 import { Query, Mutation } from 'urql'
-import { table } from 'console'
+
+const { Text } = Typography
+const { Option } = Select
+const { Step } = Steps
 
 const DEPLOYMENTS = `
     query GetDeployments {
@@ -19,10 +29,20 @@ const DEPLOYMENTS = `
             version
             commit
             status
+            statusHistory {
+                status
+                time
+            }
             resultsUrl
             deploymentUrl
             node
           }
+    }
+`
+
+const LOGS = `
+    query GetLogs {
+        getAvailableLogs
     }
 `
 
@@ -43,68 +63,6 @@ const CANCEL_DEPLOYMENT = `
     cancelDeployment(deploymentId: $id)
   }
 `
-/*
-export default function Deployments() {
-    const spaceStyle = {
-        width: 'calc(100% - 20px)',
-        margin: '10px',
-    }
-    const tableStyle = {}
-    const [result, reexecuteQuery] = useQuery({
-        query: DEPLOYMENTS,
-        requestPolicy: 'network-only',
-        pollInterval: 1000,
-    })
-
-    const { data, fetching, error } = result
-
-    let tableData = data
-    console.log(tableData)
-    console.log(fetching)
-    if (tableData) {
-        tableData = tableData.getDeployments.map((deployment, index) => {
-            return {
-                key: index,
-                id: deployment.id,
-                status: deployment.status,
-                srcUrl: deployment.srcUrl,
-                version: deployment.version,
-            }
-        })
-    }
-
-    return (
-        <Space direction="vertical" style={spaceStyle}>
-            <Card title="Create a New Deployment">
-                <Space direction="horizontal">
-                    <Space direction="vertical">
-                        <Text>Git Url for Deployment</Text>
-                        <Input placeholder="Basic usage" />
-                    </Space>
-                    <Space direction="vertical">
-                        <Steps direction="vertical" current={0}>
-                            <Step title="Awaiting Url" description="" />
-                            <Step
-                                title="Validating Repository Link"
-                                description="The URL connects to a valid Git Repository"
-                            />
-                            <Step
-                                title="Configuration Exists"
-                                description="A shipwreck.toml exists in the repository root"
-                            />
-                        </Steps>
-                    </Space>
-                </Space>
-            </Card>
-            <Card title="Active Deployments">
-                <div style={tableStyle}>
-                    <DeploymentsTable data={tableData} fetching={fetching} error={error} />
-                </div>
-            </Card>
-        </Space>
-    )
-}
-*/
 
 interface AppState {
     deploymentStep: number
@@ -112,6 +70,7 @@ interface AppState {
     deploymentStepPercent: number
     deploymentAlertText: string
     urlInput: any
+    activeDetailId: string
 }
 
 class Deployments extends React.Component<{}, AppState> {
@@ -123,6 +82,7 @@ class Deployments extends React.Component<{}, AppState> {
             deploymentStepPercent: 0,
             deploymentAlertText: '',
             urlInput: React.createRef(),
+            activeDetailId: '20dca356-0701-4fee-86d8-29bf06bfc2da',
         }
     }
 
@@ -134,8 +94,6 @@ class Deployments extends React.Component<{}, AppState> {
     columnStyle = {
         padding: '0px 10px 0px 10px',
     }
-
-    tableStyle = {}
 
     testDeployment = async () => {
         let url = this.state.urlInput.current.state.value
@@ -170,15 +128,10 @@ class Deployments extends React.Component<{}, AppState> {
         this.setState({ deploymentStep: 3, deploymentStepPercent: 100, deploymentAlertText: '' })
         return true
     }
-    /*
-    createDeployment = async (url) => {
-        const [state, executeMutation] = useMutation(CREATE_DEPLOYMENT)
 
-        const submit = React.useCallback(() => {
-            executeMutation({url})
-        }, [executeMutation, url])
+    updateActiveDetailId = id => {
+        this.setState({ activeDetailId: id })
     }
-    */
 
     render() {
         return (
@@ -234,64 +187,101 @@ class Deployments extends React.Component<{}, AppState> {
                         )}
                     </Row>
                 </Card>
-                <Card title="Active Deployments">
-                    <Query query={DEPLOYMENTS} requestPolicy="network-only" pollInterval={1000}>
-                        {({ fetching, data, error }) => {
-                            let tableData = data
-                            if (tableData?.getDeployments) {
-                                tableData = tableData.getDeployments.map((deployment, index) => {
-                                    return {
-                                        key: index,
-                                        id: deployment.id,
-                                        status: deployment.status,
-                                        srcUrl: deployment.srcUrl,
-                                        version: deployment.version,
-                                        update: (
-                                            <Mutation query={UPDATE_DEPLOYMENT}>
-                                                {({ executeMutation }) => (
-                                                    <Button
-                                                        type="primary"
-                                                        icon={<RetweetOutlined />}
-                                                        onClick={() =>
-                                                            executeMutation({
-                                                                id: deployment.id,
-                                                            })
-                                                        }
-                                                    />
-                                                )}
-                                            </Mutation>
-                                        ),
-                                        destroy: (
-                                            <Mutation query={CANCEL_DEPLOYMENT}>
-                                                {({ executeMutation }) => (
-                                                    <Button
-                                                        style={{ margin: 'auto' }}
-                                                        type="primary"
-                                                        danger
-                                                        icon={<DeleteOutlined />}
-                                                        onClick={() =>
-                                                            executeMutation({
-                                                                id: deployment.id,
-                                                            })
-                                                        }
-                                                    />
-                                                )}
-                                            </Mutation>
-                                        ),
-                                    }
-                                })
-                            } else {
-                                tableData = undefined
-                            }
-                            return (
-                                <div style={this.tableStyle}>
+
+                <Query query={DEPLOYMENTS} requestPolicy="network-only" pollInterval={1000}>
+                    {({ fetching, data, error }) => {
+                        let tableData = data
+                        let ids = []
+                        let timeEntries = []
+                        if (tableData?.getDeployments) {
+                            tableData = tableData.getDeployments.map((deployment, index) => {
+                                ids.push(<Option value={deployment.id}>{deployment.id}</Option>)
+                                if (this.state.activeDetailId == deployment.id) {
+                                    timeEntries = deployment.statusHistory.map(i => (
+                                        <Timeline.Item
+                                            label={new Date(i.time * 1000).toISOString()}
+                                        >
+                                            {i.status}
+                                        </Timeline.Item>
+                                    ))
+                                    timeEntries.push(<Timeline.Item>{status}</Timeline.Item>)
+                                }
+                                return {
+                                    key: index,
+                                    id: deployment.id,
+                                    status: deployment.status,
+                                    srcUrl: deployment.srcUrl,
+                                    version: deployment.version,
+                                    update: (
+                                        <Mutation query={UPDATE_DEPLOYMENT}>
+                                            {({ executeMutation }) => (
+                                                <Button
+                                                    type="primary"
+                                                    icon={<RetweetOutlined />}
+                                                    onClick={() =>
+                                                        executeMutation({
+                                                            id: deployment.id,
+                                                        })
+                                                    }
+                                                />
+                                            )}
+                                        </Mutation>
+                                    ),
+                                    destroy: (
+                                        <Mutation query={CANCEL_DEPLOYMENT}>
+                                            {({ executeMutation }) => (
+                                                <Button
+                                                    style={{ margin: 'auto' }}
+                                                    type="primary"
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                    onClick={() =>
+                                                        executeMutation({
+                                                            id: deployment.id,
+                                                        })
+                                                    }
+                                                />
+                                            )}
+                                        </Mutation>
+                                    ),
+                                }
+                            })
+                        } else {
+                            tableData = undefined
+                        }
+                        return (
+                            <div>
+                                <Card title="Deployment Details">
                                     <DeploymentsTable
                                         data={tableData}
                                         fetching={fetching}
                                         error={error}
                                     />
-                                </div>
-                            )
+                                </Card>
+                                <Card title="Deployment Details" style={{ marginTop: 10 }}>
+                                    <Select
+                                        defaultValue={this.state.activeDetailId}
+                                        onChange={this.updateActiveDetailId}
+                                    >
+                                        {ids}
+                                    </Select>
+                                    <div style={{ marginBottom: 20 }}></div>
+                                    <Timeline mode="left">{timeEntries}</Timeline>
+                                </Card>
+                            </div>
+                        )
+                    }}
+                </Query>
+                <Card title="Deployment Logs">
+                    <Query query={LOGS} requestPolicy="network-only" pollInterval={5000}>
+                        {({ fetching, data, error }) => {
+                            let tableData = data
+                            if (tableData?.getAvailableLogs) {
+                                tableData = tableData.getAvailableLogs
+                            } else {
+                                tableData = undefined
+                            }
+                            return <LogsTable data={tableData} fetching={fetching} error={error} />
                         }}
                     </Query>
                 </Card>
