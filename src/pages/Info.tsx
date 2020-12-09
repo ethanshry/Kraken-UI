@@ -1,14 +1,6 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table, Input, Alert, Button } from 'antd'
-import { Space, Card } from 'antd'
-import { LoadingOutlined, RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
-import DeploymentsTable from '../components/DeploymentsTable'
-const { Header, Content } = Layout
-import { Steps, notification } from 'antd'
-import { Row, Col, List } from 'antd'
+import { Row, Col, List, Typography, Steps, notification, Space, Card } from 'antd'
 const { Step } = Steps
-import { Query, Mutation } from 'urql'
-import { table } from 'console'
 import ReactMarkdown from 'react-markdown'
 import config from '../config'
 

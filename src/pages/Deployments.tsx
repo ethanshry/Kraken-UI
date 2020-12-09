@@ -1,18 +1,25 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table, Input, Alert, Button } from 'antd'
-import { Space, Card } from 'antd'
-import { LoadingOutlined, RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+    Typography,
+    Input,
+    Alert,
+    Button,
+    Row,
+    Col,
+    Select,
+    Steps,
+    Timeline,
+    Space,
+    Card,
+} from 'antd'
+import { RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
 import DeploymentsTable from '../components/DeploymentsTable'
 import LogsTable from '../components/LogsTable'
-const { Header, Content } = Layout
-import { Steps, Timeline } from 'antd'
-import { Row, Col, Select } from 'antd'
-const { Step } = Steps
-const { Title, Text } = Typography
 import { Query, Mutation } from 'urql'
-import { table } from 'console'
 
+const { Text } = Typography
 const { Option } = Select
+const { Step } = Steps
 
 const DEPLOYMENTS = `
     query GetDeployments {
@@ -56,68 +63,6 @@ const CANCEL_DEPLOYMENT = `
     cancelDeployment(deploymentId: $id)
   }
 `
-/*
-export default function Deployments() {
-    const spaceStyle = {
-        width: 'calc(100% - 20px)',
-        margin: '10px',
-    }
-    const tableStyle = {}
-    const [result, reexecuteQuery] = useQuery({
-        query: DEPLOYMENTS,
-        requestPolicy: 'network-only',
-        pollInterval: 1000,
-    })
-
-    const { data, fetching, error } = result
-
-    let tableData = data
-    console.log(tableData)
-    console.log(fetching)
-    if (tableData) {
-        tableData = tableData.getDeployments.map((deployment, index) => {
-            return {
-                key: index,
-                id: deployment.id,
-                status: deployment.status,
-                srcUrl: deployment.srcUrl,
-                version: deployment.version,
-            }
-        })
-    }
-
-    return (
-        <Space direction="vertical" style={spaceStyle}>
-            <Card title="Create a New Deployment">
-                <Space direction="horizontal">
-                    <Space direction="vertical">
-                        <Text>Git Url for Deployment</Text>
-                        <Input placeholder="Basic usage" />
-                    </Space>
-                    <Space direction="vertical">
-                        <Steps direction="vertical" current={0}>
-                            <Step title="Awaiting Url" description="" />
-                            <Step
-                                title="Validating Repository Link"
-                                description="The URL connects to a valid Git Repository"
-                            />
-                            <Step
-                                title="Configuration Exists"
-                                description="A shipwreck.toml exists in the repository root"
-                            />
-                        </Steps>
-                    </Space>
-                </Space>
-            </Card>
-            <Card title="Active Deployments">
-                <div style={tableStyle}>
-                    <DeploymentsTable data={tableData} fetching={fetching} error={error} />
-                </div>
-            </Card>
-        </Space>
-    )
-}
-*/
 
 interface AppState {
     deploymentStep: number
@@ -187,15 +132,6 @@ class Deployments extends React.Component<{}, AppState> {
     updateActiveDetailId = id => {
         this.setState({ activeDetailId: id })
     }
-    /*
-    createDeployment = async (url) => {
-        const [state, executeMutation] = useMutation(CREATE_DEPLOYMENT)
-
-        const submit = React.useCallback(() => {
-            executeMutation({url})
-        }, [executeMutation, url])
-    }
-    */
 
     render() {
         return (
@@ -329,6 +265,7 @@ class Deployments extends React.Component<{}, AppState> {
                                     >
                                         {ids}
                                     </Select>
+                                    <div style={{ marginBottom: 20 }}></div>
                                     <Timeline mode="left">{timeEntries}</Timeline>
                                 </Card>
                             </div>
