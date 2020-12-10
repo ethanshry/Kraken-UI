@@ -1,6 +1,6 @@
 {
     "name": "kraken-ui",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "main": "index.tsx",
     "license": "ISC",
     "dependencies": {
@@ -19,7 +19,7 @@
     },
     "scripts": {
         "start": "npm install && rimraf ./dist && parcel --no-cache index.html",
-        "build": "npm install && rimraf ./dist && NODE_ENV=production parcel build index.html"
+        "build": "npm install && rimraf ./dist && NODE_ENV=production parcel build index.html --public-url ./"
     },
     "babel": {
         "Presets": [
@@ -36,7 +36,12 @@
         "parcel": "^1.12.4",
         "parcel-plugin-bundle-visualiser": "^1.2.0",
         "parcel-plugin-react-svg": "^0.1.0",
+        "parcel-plugin-static-files-copy": "^2.5.0",
         "rimraf": "^3.0.2",
         "typescript": "^3.9.7"
+    },
+    "staticFiles": {
+        "staticPath": "static",
+        "watcherGlob": "**"
     }
 }
