@@ -14,12 +14,12 @@ const NODES = `
         getNodes {
             id
             model
+            addr
             ramUsed
             ramFree
             currentRamPercent
             uptime
             loadAvg5
-            applicationInstances
         }
     }
 `
