@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useState, useEffect } from 'react'
 import {
     Typography,
     Input,
@@ -11,6 +12,7 @@ import {
     Timeline,
     Space,
     Card,
+    List,
 } from 'antd'
 import { RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
 import DeploymentsTable from '../components/DeploymentsTable'
@@ -29,6 +31,11 @@ const DEPLOYMENTS = `
             version
             commit
             status
+            memMb
+            maxMemMb
+            cpuUsage
+            size
+            port
             statusHistory {
                 status
                 time
@@ -36,7 +43,11 @@ const DEPLOYMENTS = `
             resultsUrl
             deploymentUrl
             node
-          }
+        }
+        getNodes {
+            id
+            addr
+        }
     }
 `
 
@@ -47,8 +58,8 @@ const LOGS = `
 `
 
 const CREATE_DEPLOYMENT = `
-  mutation CreateDeployment($url: String!) {
-    createDeployment(deploymentUrl: $url)
+  mutation CreateDeployment($url: String!, $gitBranch: String!) {
+    createDeployment(deploymentUrl: $url, gitBranch: $gitBranch)
   }
 `
 
@@ -64,230 +75,316 @@ const CANCEL_DEPLOYMENT = `
   }
 `
 
-interface AppState {
-    deploymentStep: number
-    deploymentUrl: string
-    deploymentStepPercent: number
-    deploymentAlertText: string
-    urlInput: any
-    activeDetailId: string
-}
+function useInput(initialValue) {
+    const [value, setValue] = useState(initialValue)
 
-class Deployments extends React.Component<{}, AppState> {
-    constructor(props) {
-        super(props)
-        this.state = {
-            deploymentStep: 0,
-            deploymentUrl: '',
-            deploymentStepPercent: 0,
-            deploymentAlertText: '',
-            urlInput: React.createRef(),
-            activeDetailId: '20dca356-0701-4fee-86d8-29bf06bfc2da',
-        }
+    const bind = {
+        value,
+        onChange: e => {
+            console.log(e.target.value)
+            setValue(e.target.value)
+        },
     }
 
-    spaceStyle = {
+    return [value, bind]
+}
+
+let auth = process.env.AUTH
+    ? {
+          headers: new Headers({
+              Authorization: `token ${process.env.AUTH}`,
+          }),
+      }
+    : {}
+
+function Deployments() {
+    const [deploymentStep, setDeploymentStep] = useState(0)
+    const [deploymentBranch, setDeploymentBranch] = useState('')
+    const [deploymentStepPercent, setDeploymentStepPercent] = useState(0)
+    const [deploymentAlertText, setDeploymentAlertText] = useState('')
+    const [deploymentUrl, bindDeploymentUrl] = useInput('')
+    const [activeDetailId, setActiveDetailId] = useState('')
+    const [deploymentBranchOptions, setDeploymentBranchOptions] = useState([''])
+
+    useEffect(() => {
+        async function findBranches() {
+            setDeploymentStep(1)
+            let pieces = deploymentUrl.split('/')
+            if (pieces.length < 5) {
+                setDeploymentStepPercent(100)
+                setDeploymentAlertText(
+                    'URL is invalid, not enough pieces. Did you include http://?'
+                )
+                return
+            }
+            if (pieces[2] != 'github.com') {
+                setDeploymentStepPercent(100)
+                setDeploymentAlertText('URL is invalid, domain does not match github.com')
+                return
+            }
+            setDeploymentStep(2)
+            setDeploymentStepPercent(0)
+            setDeploymentAlertText('')
+            let data = await fetch(
+                `https://api.github.com/repos/${pieces[3]}/${pieces[4]}/branches`,
+                auth
+            )
+            let json = await data.json()
+            setDeploymentBranchOptions(json.map(branchData => branchData.name))
+            setDeploymentBranch('')
+        }
+        findBranches()
+    }, [deploymentUrl])
+
+    useEffect(() => {
+        async function findBranches() {
+            setDeploymentStep(1)
+            let pieces = deploymentUrl.split('/')
+            let data = await fetch(
+                `https://api.github.com/repos/${pieces[3]}/${pieces[4]}/contents/shipwreck.toml?ref=${deploymentBranch}`,
+                auth
+            )
+            let json = await data.json()
+            if (json.sha == undefined) {
+                setDeploymentStepPercent(100)
+                setDeploymentAlertText('Cannot find a shipwreck.toml in the specified repository')
+                return
+            }
+            setDeploymentStep(3)
+            setDeploymentStepPercent(0)
+            setDeploymentAlertText('')
+        }
+        findBranches()
+    }, [deploymentBranch])
+
+    const spaceStyle = {
         width: 'calc(100% - 20px)',
         margin: '10px',
     }
 
-    columnStyle = {
+    const columnStyle = {
         padding: '0px 10px 0px 10px',
     }
 
-    testDeployment = async () => {
-        let url = this.state.urlInput.current.state.value
-        this.setState({ deploymentUrl: url, deploymentStep: 1 })
-        let pieces = url.split('/')
-        if (pieces.length < 5) {
-            this.setState({
-                deploymentStepPercent: 100,
-                deploymentAlertText: 'URL is invalid, not enough pieces. Did you include http://?',
-            })
-            return
-        }
-        if (pieces[2] != 'github.com') {
-            this.setState({
-                deploymentStepPercent: 100,
-                deploymentAlertText: 'URL is invalid, domain does not match github.com',
-            })
-            return
-        }
-        this.setState({ deploymentStep: 2, deploymentStepPercent: 0 })
-        let data = await fetch(
-            `https://api.github.com/repos/${pieces[3]}/${pieces[4]}/contents/shipwreck.toml`
-        )
-        let json = await data.json()
-        if (json.sha == undefined) {
-            this.setState({
-                deploymentStepPercent: 100,
-                deploymentAlertText: 'Cannot find a shipwreck.toml in the specified repository',
-            })
-            return
-        }
-        this.setState({ deploymentStep: 3, deploymentStepPercent: 100, deploymentAlertText: '' })
-        return true
-    }
+    return (
+        <Space direction="vertical" style={spaceStyle}>
+            <Card title="Create a New Deployment">
+                <Row>
+                    <Col span={12} style={columnStyle}>
+                        <Text>Git Url for Deployment</Text>
+                        <Input placeholder="Basic usage" {...bindDeploymentUrl} />
 
-    updateActiveDetailId = id => {
-        this.setState({ activeDetailId: id })
-    }
+                        <Text>Git Branch for Deployment</Text>
+                        <br />
+                        <Select
+                            value={deploymentBranch}
+                            onChange={i => setDeploymentBranch(i)}
+                            filterOption={i => true}
+                            key={deploymentBranchOptions[0]}
+                            dropdownMatchSelectWidth={true}
+                            style={{ width: '100%' }}
+                        >
+                            {deploymentBranchOptions.map(o => (
+                                <Option key={o} value={o}>
+                                    {o}
+                                </Option>
+                            ))}
+                        </Select>
+                        <br />
+                    </Col>
+                    <Col span={12} style={columnStyle}>
+                        <Steps
+                            direction="vertical"
+                            current={deploymentStep}
+                            percent={deploymentStepPercent}
+                        >
+                            <Step title="Awaiting Url" description="" />
+                            <Step
+                                title="Validating Repository Link"
+                                description="The URL connects to a valid Git Repository"
+                            />
+                            <Step
+                                title="Configuration Exists"
+                                description="A shipwreck.toml exists in the repository root"
+                            />
+                            <Step title="Deployment is Valid" />
+                        </Steps>
+                    </Col>
+                </Row>
+                <Row>
+                    {deploymentAlertText !== '' && (
+                        <Alert message={deploymentAlertText} type="error" />
+                    )}
+                    {deploymentStep == 3 && (
+                        <Mutation query={CREATE_DEPLOYMENT}>
+                            {({ executeMutation }) => (
+                                <Button
+                                    style={{ marginTop: '10px' }}
+                                    onClick={() =>
+                                        executeMutation({
+                                            url: deploymentUrl,
+                                            gitBranch: deploymentBranch,
+                                        })
+                                    }
+                                >
+                                    Create Deployment
+                                </Button>
+                            )}
+                        </Mutation>
+                    )}
+                </Row>
+            </Card>
 
-    render() {
-        return (
-            <Space direction="vertical" style={this.spaceStyle}>
-                <Card title="Create a New Deployment">
-                    <Row>
-                        <Col span={12} style={this.columnStyle}>
-                            <Text>Git Url for Deployment</Text>
-                            <Input placeholder="Basic usage" ref={this.state.urlInput} />
+            <Query query={DEPLOYMENTS} requestPolicy="network-only" pollInterval={1000}>
+                {({ fetching, data, error }) => {
+                    let tableData = data
+                    let ids = []
+                    let timeEntries = []
+                    let activeDeployment = []
+                    if (tableData?.getDeployments) {
+                        tableData = tableData.getDeployments.map((deployment, index) => {
+                            ids.push(<Option value={deployment.id}>{deployment.id}</Option>)
+                            let addr =
+                                tableData.getNodes.filter(n => n.id == deployment.node)[0].addr +
+                                ':' +
+                                deployment.port
+                            if (activeDetailId == deployment.id) {
+                                activeDeployment = [
+                                    {
+                                        title: 'Status',
+                                        description: deployment.status,
+                                    },
+                                    {
+                                        title: 'Git Commit',
+                                        description: deployment.commit,
+                                    },
+                                    {
+                                        title: 'Current RAM',
+                                        description: deployment.memMb + ' Mb',
+                                    },
+                                    {
+                                        title: 'Max RAM',
+                                        description: deployment.maxMemMb + ' Mb',
+                                    },
+                                    {
+                                        title: 'Current CPU',
+                                        description: deployment.cpuUsage + ' %',
+                                    },
+                                    {
+                                        title: 'Url',
+                                        description: addr,
+                                    },
+                                ]
+                                timeEntries = deployment.statusHistory.map(i => (
+                                    <Timeline.Item label={new Date(i.time * 1000).toISOString()}>
+                                        {i.status}
+                                    </Timeline.Item>
+                                ))
+                                timeEntries.push(<Timeline.Item>{status}</Timeline.Item>)
+                            }
 
-                            <Button style={{ marginTop: '10px' }} onClick={this.testDeployment}>
-                                Validate Deployment
-                            </Button>
-                        </Col>
-                        <Col span={12} style={this.columnStyle}>
-                            <Steps
-                                direction="vertical"
-                                current={this.state.deploymentStep}
-                                percent={this.state.deploymentStepPercent}
-                            >
-                                <Step title="Awaiting Url" description="" />
-                                <Step
-                                    title="Validating Repository Link"
-                                    description="The URL connects to a valid Git Repository"
+                            return {
+                                key: index,
+                                id: deployment.id.slice(0, 8),
+                                status: deployment.status,
+                                srcUrl: deployment.srcUrl,
+                                version: deployment.commit.slice(0, 8),
+                                addr,
+                                update: (
+                                    <Mutation query={UPDATE_DEPLOYMENT}>
+                                        {({ executeMutation }) => (
+                                            <Button
+                                                type="primary"
+                                                icon={<RetweetOutlined />}
+                                                onClick={() =>
+                                                    executeMutation({
+                                                        id: deployment.id,
+                                                    })
+                                                }
+                                            />
+                                        )}
+                                    </Mutation>
+                                ),
+                                destroy: (
+                                    <Mutation query={CANCEL_DEPLOYMENT}>
+                                        {({ executeMutation }) => (
+                                            <Button
+                                                style={{ margin: 'auto' }}
+                                                type="primary"
+                                                danger
+                                                icon={<DeleteOutlined />}
+                                                onClick={() =>
+                                                    executeMutation({
+                                                        id: deployment.id,
+                                                    })
+                                                }
+                                            />
+                                        )}
+                                    </Mutation>
+                                ),
+                            }
+                        })
+                    } else {
+                        tableData = undefined
+                    }
+                    return (
+                        <div>
+                            <Card title="Deployment Details">
+                                <DeploymentsTable
+                                    data={tableData}
+                                    fetching={fetching}
+                                    error={error}
                                 />
-                                <Step
-                                    title="Configuration Exists"
-                                    description="A shipwreck.toml exists in the repository root"
-                                />
-                                <Step title="Deployment is Valid" />
-                            </Steps>
-                        </Col>
-                    </Row>
-                    <Row>
-                        {this.state.deploymentAlertText !== '' && (
-                            <Alert message={this.state.deploymentAlertText} type="error" />
-                        )}
-                        {this.state.deploymentStep == 3 && (
-                            <Mutation query={CREATE_DEPLOYMENT}>
-                                {({ executeMutation }) => (
-                                    <Button
-                                        style={{ marginTop: '10px' }}
-                                        onClick={() =>
-                                            executeMutation({
-                                                url: this.state.urlInput.current.state.value,
-                                            })
-                                        }
-                                    >
-                                        Create Deployment
-                                    </Button>
-                                )}
-                            </Mutation>
-                        )}
-                    </Row>
-                </Card>
-
-                <Query query={DEPLOYMENTS} requestPolicy="network-only" pollInterval={1000}>
+                            </Card>
+                            <Card title="Deployment Details" style={{ marginTop: 10 }}>
+                                <Select
+                                    defaultValue={activeDetailId}
+                                    onChange={i => setActiveDetailId(i)}
+                                    style={{ width: '100%', maxWidth: '400px' }}
+                                >
+                                    {ids}
+                                </Select>
+                                <div style={{ marginBottom: 20 }}></div>
+                                <Row>
+                                    <Col span={12} style={columnStyle}>
+                                        <Timeline mode="left">{timeEntries}</Timeline>
+                                    </Col>
+                                    <Col span={12} style={columnStyle}>
+                                        <List
+                                            itemLayout="horizontal"
+                                            style={{ textAlign: 'right' }}
+                                            dataSource={activeDeployment}
+                                            renderItem={(item: any) => (
+                                                <List.Item>
+                                                    <List.Item.Meta
+                                                        title={item.title}
+                                                        description={item.description}
+                                                    />
+                                                </List.Item>
+                                            )}
+                                        />
+                                    </Col>
+                                </Row>
+                            </Card>
+                        </div>
+                    )
+                }}
+            </Query>
+            <Card title="Deployment Logs">
+                <Query query={LOGS} requestPolicy="network-only" pollInterval={5000}>
                     {({ fetching, data, error }) => {
                         let tableData = data
-                        let ids = []
-                        let timeEntries = []
-                        if (tableData?.getDeployments) {
-                            tableData = tableData.getDeployments.map((deployment, index) => {
-                                ids.push(<Option value={deployment.id}>{deployment.id}</Option>)
-                                if (this.state.activeDetailId == deployment.id) {
-                                    timeEntries = deployment.statusHistory.map(i => (
-                                        <Timeline.Item
-                                            label={new Date(i.time * 1000).toISOString()}
-                                        >
-                                            {i.status}
-                                        </Timeline.Item>
-                                    ))
-                                    timeEntries.push(<Timeline.Item>{status}</Timeline.Item>)
-                                }
-                                return {
-                                    key: index,
-                                    id: deployment.id,
-                                    status: deployment.status,
-                                    srcUrl: deployment.srcUrl,
-                                    version: deployment.version,
-                                    update: (
-                                        <Mutation query={UPDATE_DEPLOYMENT}>
-                                            {({ executeMutation }) => (
-                                                <Button
-                                                    type="primary"
-                                                    icon={<RetweetOutlined />}
-                                                    onClick={() =>
-                                                        executeMutation({
-                                                            id: deployment.id,
-                                                        })
-                                                    }
-                                                />
-                                            )}
-                                        </Mutation>
-                                    ),
-                                    destroy: (
-                                        <Mutation query={CANCEL_DEPLOYMENT}>
-                                            {({ executeMutation }) => (
-                                                <Button
-                                                    style={{ margin: 'auto' }}
-                                                    type="primary"
-                                                    danger
-                                                    icon={<DeleteOutlined />}
-                                                    onClick={() =>
-                                                        executeMutation({
-                                                            id: deployment.id,
-                                                        })
-                                                    }
-                                                />
-                                            )}
-                                        </Mutation>
-                                    ),
-                                }
-                            })
+                        if (tableData?.getAvailableLogs) {
+                            tableData = tableData.getAvailableLogs
                         } else {
                             tableData = undefined
                         }
-                        return (
-                            <div>
-                                <Card title="Deployment Details">
-                                    <DeploymentsTable
-                                        data={tableData}
-                                        fetching={fetching}
-                                        error={error}
-                                    />
-                                </Card>
-                                <Card title="Deployment Details" style={{ marginTop: 10 }}>
-                                    <Select
-                                        defaultValue={this.state.activeDetailId}
-                                        onChange={this.updateActiveDetailId}
-                                    >
-                                        {ids}
-                                    </Select>
-                                    <div style={{ marginBottom: 20 }}></div>
-                                    <Timeline mode="left">{timeEntries}</Timeline>
-                                </Card>
-                            </div>
-                        )
+                        return <LogsTable data={tableData} fetching={fetching} error={error} />
                     }}
                 </Query>
-                <Card title="Deployment Logs">
-                    <Query query={LOGS} requestPolicy="network-only" pollInterval={5000}>
-                        {({ fetching, data, error }) => {
-                            let tableData = data
-                            if (tableData?.getAvailableLogs) {
-                                tableData = tableData.getAvailableLogs
-                            } else {
-                                tableData = undefined
-                            }
-                            return <LogsTable data={tableData} fetching={fetching} error={error} />
-                        }}
-                    </Query>
-                </Card>
-            </Space>
-        )
-    }
+            </Card>
+        </Space>
+    )
 }
 
 export default Deployments

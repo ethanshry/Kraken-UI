@@ -52,6 +52,11 @@ export default function DeploymentsTable(props) {
             key: 'version',
         },
         {
+            title: 'Address',
+            dataIndex: 'addr',
+            key: 'addr',
+        },
+        {
             title: 'Update',
             dataIndex: 'update',
             key: 'update',

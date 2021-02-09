@@ -14,12 +14,12 @@ const NODES = `
         getNodes {
             id
             model
+            addr
             ramUsed
             ramFree
             currentRamPercent
             uptime
             loadAvg5
-            applicationInstances
         }
     }
 `
@@ -50,6 +50,11 @@ export default function NodesTable() {
             key: 'model',
         },
         {
+            title: 'Address',
+            dataIndex: 'addr',
+            key: 'addr',
+        },
+        {
             title: 'RAM Free (GB)',
             dataIndex: 'ramFree',
             key: 'ramFree',
@@ -76,6 +81,7 @@ export default function NodesTable() {
             key: index,
             id: node.id,
             model: node.model,
+            addr: node.addr,
             ramFree: (node.ramFree / 1000000).toFixed(2),
             ramUsed: (node.ramUsed / 100000).toFixed(2),
             loadAvg5: node.loadAvg5.toFixed(3) * 100 + '%',
