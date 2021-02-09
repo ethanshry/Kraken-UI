@@ -79,6 +79,7 @@ class Deployments extends React.Component<{}, AppState> {
         this.state = {
             deploymentStep: 0,
             deploymentUrl: '',
+            deploymentBranch: '',
             deploymentStepPercent: 0,
             deploymentAlertText: '',
             urlInput: React.createRef(),
