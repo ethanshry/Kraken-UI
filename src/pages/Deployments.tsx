@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
     Typography,
     Input,
@@ -12,6 +12,7 @@ import {
     Timeline,
     Space,
     Card,
+    List,
 } from 'antd'
 import { RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
 import DeploymentsTable from '../components/DeploymentsTable'
@@ -30,6 +31,11 @@ const DEPLOYMENTS = `
             version
             commit
             status
+            memMb
+            maxMemMb
+            cpuUsage
+            size
+            port
             statusHistory {
                 status
                 time
@@ -37,7 +43,11 @@ const DEPLOYMENTS = `
             resultsUrl
             deploymentUrl
             node
-          }
+        }
+        getNodes {
+            id
+            addr
+        }
     }
 `
 
@@ -48,8 +58,8 @@ const LOGS = `
 `
 
 const CREATE_DEPLOYMENT = `
-  mutation CreateDeployment($url: String!) {
-    createDeployment(deploymentUrl: $url)
+  mutation CreateDeployment($url: String!, $gitBranch: String!) {
+    createDeployment(deploymentUrl: $url, gitBranch: $gitBranch)
   }
 `
 
@@ -79,13 +89,73 @@ function useInput(initialValue) {
     return [value, bind]
 }
 
+let auth = process.env.AUTH
+    ? {
+          headers: new Headers({
+              Authorization: `token ${process.env.AUTH}`,
+          }),
+      }
+    : {}
+
 function Deployments() {
     const [deploymentStep, setDeploymentStep] = useState(0)
     const [deploymentBranch, setDeploymentBranch] = useState('')
     const [deploymentStepPercent, setDeploymentStepPercent] = useState(0)
     const [deploymentAlertText, setDeploymentAlertText] = useState('')
-    const [urlInput, bindUrlInput] = useInput('')
-    const [activeDetailId, setActiveDetailId] = useState('20dca356-0701-4fee-86d8-29bf06bfc2da')
+    const [deploymentUrl, bindDeploymentUrl] = useInput('')
+    const [activeDetailId, setActiveDetailId] = useState('')
+    const [deploymentBranchOptions, setDeploymentBranchOptions] = useState([''])
+
+    useEffect(() => {
+        async function findBranches() {
+            setDeploymentStep(1)
+            let pieces = deploymentUrl.split('/')
+            if (pieces.length < 5) {
+                setDeploymentStepPercent(100)
+                setDeploymentAlertText(
+                    'URL is invalid, not enough pieces. Did you include http://?'
+                )
+                return
+            }
+            if (pieces[2] != 'github.com') {
+                setDeploymentStepPercent(100)
+                setDeploymentAlertText('URL is invalid, domain does not match github.com')
+                return
+            }
+            setDeploymentStep(2)
+            setDeploymentStepPercent(0)
+            setDeploymentAlertText('')
+            let data = await fetch(
+                `https://api.github.com/repos/${pieces[3]}/${pieces[4]}/branches`,
+                auth
+            )
+            let json = await data.json()
+            setDeploymentBranchOptions(json.map(branchData => branchData.name))
+            setDeploymentBranch('')
+        }
+        findBranches()
+    }, [deploymentUrl])
+
+    useEffect(() => {
+        async function findBranches() {
+            setDeploymentStep(1)
+            let pieces = deploymentUrl.split('/')
+            let data = await fetch(
+                `https://api.github.com/repos/${pieces[3]}/${pieces[4]}/contents/shipwreck.toml?ref=${deploymentBranch}`,
+                auth
+            )
+            let json = await data.json()
+            if (json.sha == undefined) {
+                setDeploymentStepPercent(100)
+                setDeploymentAlertText('Cannot find a shipwreck.toml in the specified repository')
+                return
+            }
+            setDeploymentStep(3)
+            setDeploymentStepPercent(0)
+            setDeploymentAlertText('')
+        }
+        findBranches()
+    }, [deploymentBranch])
 
     const spaceStyle = {
         width: 'calc(100% - 20px)',
@@ -96,51 +166,31 @@ function Deployments() {
         padding: '0px 10px 0px 10px',
     }
 
-    const testDeployment = async () => {
-        let url = urlInput
-        setDeploymentStep(1)
-        let pieces = url.split('/')
-        if (pieces.length < 5) {
-            setDeploymentStepPercent(100)
-            setDeploymentAlertText('URL is invalid, not enough pieces. Did you include http://?')
-            return
-        }
-        if (pieces[2] != 'github.com') {
-            setDeploymentStepPercent(100)
-            setDeploymentAlertText('URL is invalid, domain does not match github.com')
-            return
-        }
-        setDeploymentStep(2)
-        setDeploymentStepPercent(0)
-        let data = await fetch(
-            `https://api.github.com/repos/${pieces[3]}/${pieces[4]}/contents/shipwreck.toml`
-        )
-        let json = await data.json()
-        if (json.sha == undefined) {
-            setDeploymentStepPercent(100)
-            setDeploymentAlertText('Cannot find a shipwreck.toml in the specified repository')
-            return
-        }
-        setDeploymentStep(2)
-        setDeploymentStepPercent(0)
-        setDeploymentAlertText('')
-        return true
-    }
-
     return (
         <Space direction="vertical" style={spaceStyle}>
             <Card title="Create a New Deployment">
                 <Row>
                     <Col span={12} style={columnStyle}>
                         <Text>Git Url for Deployment</Text>
-                        <Input placeholder="Basic usage" {...bindUrlInput} />
+                        <Input placeholder="Basic usage" {...bindDeploymentUrl} />
 
                         <Text>Git Branch for Deployment</Text>
-                        <Input placeholder="Basic usage" {...bindUrlInput} />
-
-                        <Button style={{ marginTop: '10px' }} onClick={() => testDeployment()}>
-                            Validate Deployment
-                        </Button>
+                        <br />
+                        <Select
+                            value={deploymentBranch}
+                            onChange={i => setDeploymentBranch(i)}
+                            filterOption={i => true}
+                            key={deploymentBranchOptions[0]}
+                            dropdownMatchSelectWidth={true}
+                            style={{ width: '100%' }}
+                        >
+                            {deploymentBranchOptions.map(o => (
+                                <Option key={o} value={o}>
+                                    {o}
+                                </Option>
+                            ))}
+                        </Select>
+                        <br />
                     </Col>
                     <Col span={12} style={columnStyle}>
                         <Steps
@@ -172,7 +222,8 @@ function Deployments() {
                                     style={{ marginTop: '10px' }}
                                     onClick={() =>
                                         executeMutation({
-                                            url: urlInput,
+                                            url: deploymentUrl,
+                                            gitBranch: deploymentBranch,
                                         })
                                     }
                                 >
@@ -189,10 +240,41 @@ function Deployments() {
                     let tableData = data
                     let ids = []
                     let timeEntries = []
+                    let activeDeployment = []
                     if (tableData?.getDeployments) {
                         tableData = tableData.getDeployments.map((deployment, index) => {
                             ids.push(<Option value={deployment.id}>{deployment.id}</Option>)
+                            let addr =
+                                tableData.getNodes.filter(n => n.id == deployment.node)[0].addr +
+                                ':' +
+                                deployment.port
                             if (activeDetailId == deployment.id) {
+                                activeDeployment = [
+                                    {
+                                        title: 'Status',
+                                        description: deployment.status,
+                                    },
+                                    {
+                                        title: 'Git Commit',
+                                        description: deployment.commit,
+                                    },
+                                    {
+                                        title: 'Current RAM',
+                                        description: deployment.memMb + ' Mb',
+                                    },
+                                    {
+                                        title: 'Max RAM',
+                                        description: deployment.maxMemMb + ' Mb',
+                                    },
+                                    {
+                                        title: 'Current CPU',
+                                        description: deployment.cpuUsage + ' %',
+                                    },
+                                    {
+                                        title: 'Url',
+                                        description: addr,
+                                    },
+                                ]
                                 timeEntries = deployment.statusHistory.map(i => (
                                     <Timeline.Item label={new Date(i.time * 1000).toISOString()}>
                                         {i.status}
@@ -200,12 +282,14 @@ function Deployments() {
                                 ))
                                 timeEntries.push(<Timeline.Item>{status}</Timeline.Item>)
                             }
+
                             return {
                                 key: index,
-                                id: deployment.id,
+                                id: deployment.id.slice(0, 8),
                                 status: deployment.status,
                                 srcUrl: deployment.srcUrl,
-                                version: deployment.version,
+                                version: deployment.commit.slice(0, 8),
+                                addr,
                                 update: (
                                     <Mutation query={UPDATE_DEPLOYMENT}>
                                         {({ executeMutation }) => (
@@ -256,11 +340,31 @@ function Deployments() {
                                 <Select
                                     defaultValue={activeDetailId}
                                     onChange={i => setActiveDetailId(i)}
+                                    style={{ width: '100%', maxWidth: '400px' }}
                                 >
                                     {ids}
                                 </Select>
                                 <div style={{ marginBottom: 20 }}></div>
-                                <Timeline mode="left">{timeEntries}</Timeline>
+                                <Row>
+                                    <Col span={12} style={columnStyle}>
+                                        <Timeline mode="left">{timeEntries}</Timeline>
+                                    </Col>
+                                    <Col span={12} style={columnStyle}>
+                                        <List
+                                            itemLayout="horizontal"
+                                            style={{ textAlign: 'right' }}
+                                            dataSource={activeDeployment}
+                                            renderItem={(item: any) => (
+                                                <List.Item>
+                                                    <List.Item.Meta
+                                                        title={item.title}
+                                                        description={item.description}
+                                                    />
+                                                </List.Item>
+                                            )}
+                                        />
+                                    </Col>
+                                </Row>
                             </Card>
                         </div>
                     )
