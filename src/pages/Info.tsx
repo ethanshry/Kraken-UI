@@ -9,10 +9,6 @@ const { Title, Text } = Typography
 
 import styles from '../styles'
 
-interface InfoState {
-    deploymentStep: number
-}
-
 function Info() {
     const [deploymentStep, setDeploymentStep] = useState(0)
 
