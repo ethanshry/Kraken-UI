@@ -1,10 +1,8 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table } from 'antd'
+import { Typography, Table } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 
-const { Header, Content } = Layout
-
-const { Title, Text } = Typography
+const { Text } = Typography
 
 //import { useQuery, gql } from '@apollo/client'
 import { useQuery } from 'urql'
@@ -89,5 +87,8 @@ export default function NodesTable() {
         }
     })
 
-    return <Table dataSource={tableData} columns={columns} />
+    console.log(tableData)
+    console.log(columns)
+
+    return <Table<any> dataSource={tableData} columns={columns} />
 }

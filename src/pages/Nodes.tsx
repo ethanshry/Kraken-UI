@@ -1,10 +1,5 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
 import NodesTable from '../components/NodesTable'
-const { Header, Content } = Layout
-
-const { Title, Text } = Typography
 
 export default function Nodes() {
     const tableStyle = {
