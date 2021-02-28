@@ -58,6 +58,7 @@ class App extends React.Component<{}, AppState> {
     }
 
     render() {
+        console.log(process.env.AUTH)
         return (
             <Provider value={client}>
                 <Layout>
