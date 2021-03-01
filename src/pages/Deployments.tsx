@@ -272,7 +272,7 @@ function Deployments() {
                                     },
                                     {
                                         title: 'Url',
-                                        description: addr,
+                                        description: `<a href=http://${addr} target="_blank">addr</a>`,
                                     },
                                 ]
                                 timeEntries = deployment.statusHistory.map(i => (

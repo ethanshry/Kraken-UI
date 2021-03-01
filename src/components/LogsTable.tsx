@@ -1,12 +1,21 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table } from 'antd'
+import { Typography, Menu, Layout, Table, Button } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import { Skeleton } from 'antd'
 import config from '../config'
+import { RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
+import DeploymentsTable from '../components/DeploymentsTable'
+import { Query, Mutation } from 'urql'
 
 const { Header, Content } = Layout
 
 const { Title, Text } = Typography
+
+const DELETE_LOG = `
+  mutation DeleteLog($id: String!) {
+    deleteLog(logId: $id)
+  }
+`
 
 export default function LogsTable(props) {
     let { data, fetching, error } = props
@@ -26,6 +35,23 @@ export default function LogsTable(props) {
                     View Log
                 </a>
             ),
+            destroy: (
+                <Mutation query={DELETE_LOG}>
+                    {({ executeMutation }) => (
+                        <Button
+                            style={{ margin: 'auto' }}
+                            type="primary"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() =>
+                                executeMutation({
+                                    id: d,
+                                })
+                            }
+                        />
+                    )}
+                </Mutation>
+            ),
             key: d,
         }
     })
@@ -42,6 +68,11 @@ export default function LogsTable(props) {
             title: 'Link',
             dataIndex: 'link',
             key: 'link',
+        },
+        {
+            title: 'Delete',
+            dataIndex: 'destroy',
+            key: 'destroy',
         },
     ]
     // @ts-ignore
