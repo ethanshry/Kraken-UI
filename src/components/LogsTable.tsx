@@ -1,15 +1,18 @@
 import * as React from 'react'
-import { Typography, Menu, Layout, Table, Button } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
+import { Typography, Table, Button } from 'antd'
+import { useState, useEffect } from 'react'
 import { Skeleton } from 'antd'
 import config from '../config'
-import { RetweetOutlined, DeleteOutlined } from '@ant-design/icons'
-import DeploymentsTable from '../components/DeploymentsTable'
-import { Query, Mutation } from 'urql'
+import { DeleteOutlined } from '@ant-design/icons'
+import { Mutation, useQuery } from 'urql'
 
-const { Header, Content } = Layout
+const { Text } = Typography
 
-const { Title, Text } = Typography
+const GET_LOGS = `
+    query GetLogs {
+        getAvailableLogs
+    }
+`
 
 const DELETE_LOG = `
   mutation DeleteLog($id: String!) {
@@ -17,13 +20,36 @@ const DELETE_LOG = `
   }
 `
 
-export default function LogsTable(props) {
-    let { data, fetching, error } = props
+export default function LogsTable() {
+    const [hasMadeInitialRequest, setHasMadeInitialRequest] = useState(false)
 
-    if (fetching) return <Skeleton active />
+    const [result, reexecuteQuery] = useQuery({
+        query: GET_LOGS,
+        requestPolicy: 'network-only',
+    })
+
+    useEffect(() => {
+        if (!result.fetching) {
+            const id = setTimeout(
+                () => reexecuteQuery({ requestPolicy: 'network-only', isPolling: true }),
+                5000
+            )
+            return () => clearTimeout(id)
+        }
+    }, [result.fetching, reexecuteQuery])
+
+    let { data, fetching, error } = result
+
+    if (!fetching && !hasMadeInitialRequest) {
+        setHasMadeInitialRequest(true)
+    }
+
+    if (!hasMadeInitialRequest) return <Skeleton active />
     if (error) return <Text>{`${error.message}`}</Text>
 
-    if (data === undefined) {
+    if (data?.getAvailableLogs) {
+        data = data.getAvailableLogs
+    } else {
         data = []
     }
 
@@ -43,11 +69,12 @@ export default function LogsTable(props) {
                             type="primary"
                             danger
                             icon={<DeleteOutlined />}
-                            onClick={() =>
+                            onClick={() => {
                                 executeMutation({
                                     id: d,
                                 })
-                            }
+                                reexecuteQuery()
+                            }}
                         />
                     )}
                 </Mutation>

@@ -7,7 +7,6 @@ const { Header, Content } = Layout
 
 const { Title, Text } = Typography
 
-//import { useQuery, gql } from '@apollo/client'
 import { useQuery } from 'urql'
 
 const DEPLOYMENTS = `

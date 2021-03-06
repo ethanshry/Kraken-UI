@@ -1,10 +1,10 @@
 import * as React from 'react'
+import { useState, useEffect } from 'react'
 import { Typography, Table } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 
 const { Text } = Typography
 
-//import { useQuery, gql } from '@apollo/client'
 import { useQuery } from 'urql'
 
 const NODES = `
@@ -25,15 +25,30 @@ const NODES = `
 // TODO implement https://github.com/borisyankov/react-sparklines
 
 export default function NodesTable() {
+    const [hasMadeInitialRequest, setHasMadeInitialRequest] = useState(false)
+
     const [result, reexecuteQuery] = useQuery({
         query: NODES,
         requestPolicy: 'network-only',
-        pollInterval: 1000,
     })
+
+    useEffect(() => {
+        if (!result.fetching) {
+            const id = setTimeout(
+                () => reexecuteQuery({ requestPolicy: 'network-only', isPolling: true }),
+                5000
+            )
+            return () => clearTimeout(id)
+        }
+    }, [result.fetching, reexecuteQuery])
 
     const { data, fetching, error } = result
 
-    if (fetching) return <LoadingOutlined />
+    if (!fetching && !hasMadeInitialRequest) {
+        setHasMadeInitialRequest(true)
+    }
+
+    if (!hasMadeInitialRequest) return <LoadingOutlined />
     if (error) return <Text>{`${error.message}`}</Text>
 
     const columns = [
@@ -86,9 +101,6 @@ export default function NodesTable() {
             uptime: node.uptime,
         }
     })
-
-    console.log(tableData)
-    console.log(columns)
 
     return <Table<any> dataSource={tableData} columns={columns} />
 }
