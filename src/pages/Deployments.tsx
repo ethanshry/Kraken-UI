@@ -191,7 +191,7 @@ function Deployments() {
         deploymentData = deploymentData.getDeployments.map((deployment, index) => {
             ids.push(<Option value={deployment.id}>{deployment.id}</Option>)
             let addr =
-                deploymentData.getNodes.filter(n => n.id == deployment.node)[0].addr +
+                deploymentData.getNodes.filter(n => n.id == deployment.node)[0]?.addr +
                 ':' +
                 deployment.port
             if (activeDetailId == deployment.id) {
@@ -218,7 +218,7 @@ function Deployments() {
                     },
                     {
                         title: 'Url',
-                        description: `<a href=http://${addr} target="_blank">addr</a>`,
+                        description: addr,
                     },
                 ]
                 timeEntries = deployment.statusHistory.map(i => (
