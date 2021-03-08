@@ -6,16 +6,8 @@ import {
     ClusterOutlined,
     InfoCircleOutlined,
 } from '@ant-design/icons'
-//import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
 import { createClient, Provider } from 'urql'
 import config from './config'
-
-/*
-const apolloClient = new ApolloClient({
-    uri: 'https://localhost:8000/graphql',
-    cache: new InMemoryCache(),
-})
-*/
 
 /********
  * Assets:
