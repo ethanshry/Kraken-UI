@@ -91,16 +91,12 @@ class App extends React.Component<{}, AppState> {
                                 <Menu.Item icon={<AppstoreOutlined />} key="deployments">
                                     Deployments
                                 </Menu.Item>
-                                <Menu.Item icon={<CloudServerOutlined />} key="platform">
-                                    Platform
-                                </Menu.Item>
                             </Menu>
                         </Sider>
                         <Content>
                             {this.state.activeTab === 'info' && <Info />}
                             {this.state.activeTab === 'nodes' && <Nodes />}
                             {this.state.activeTab === 'deployments' && <Deployments />}
-                            {this.state.activeTab === 'platform' && <Platform />}
                         </Content>
                     </Layout>
                 </Layout>
