@@ -57,7 +57,7 @@ export default function LogsTable() {
         return {
             id: d,
             link: (
-                <a target="_blank" href={`http://localhost:${config.serverPort}/log/${d}`}>
+                <a target="_blank" href={`/log/${d}`}>
                     View Log
                 </a>
             ),
