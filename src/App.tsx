@@ -16,7 +16,7 @@ import config from './config'
  */
 
 const client = createClient({
-    url: `http://0.0.0.0:${config.serverPort}/graphql`,
+    url: `http://localhost:${config.serverPort}/graphql`,
     fetchOptions: () => {
         return {
             headers: {},
@@ -63,7 +63,7 @@ class App extends React.Component<{}, AppState> {
                             }}
                         >
                             <img
-                                src={`http://0.0.0.0:${config.serverPort}/kraken.svg`}
+                                src={`http://localhost:${config.serverPort}/kraken.svg`}
                                 width={'auto'}
                                 height={64}
                                 style={{
