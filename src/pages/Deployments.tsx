@@ -127,7 +127,13 @@ function Deployments() {
             setDeploymentBranchOptions(json.map(branchData => branchData.name))
             setDeploymentBranch('')
         }
-        findBranches()
+        if (deploymentUrl == '') {
+            if (deploymentStep != 0) {
+                setDeploymentStep(0)
+            }
+        } else {
+            findBranches()
+        }
     }, [deploymentUrl])
 
     useEffect(() => {
@@ -148,7 +154,16 @@ function Deployments() {
             setDeploymentStepPercent(0)
             setDeploymentAlertText('')
         }
-        findBranches()
+        console.log(deploymentBranch)
+        console.log(deploymentBranch == '')
+        console.log(deploymentStep)
+        if (deploymentBranch == '') {
+            if (deploymentStep != 0) {
+                setDeploymentStep(0)
+            }
+        } else {
+            findBranches()
+        }
     }, [deploymentBranch])
 
     const spaceStyle = {
@@ -280,7 +295,10 @@ function Deployments() {
                 <Row>
                     <Col span={12} style={columnStyle}>
                         <Text>Git Url for Deployment</Text>
-                        <Input placeholder="Basic usage" {...bindDeploymentUrl} />
+                        <Input
+                            placeholder="http://github.com/username/projectname"
+                            {...bindDeploymentUrl}
+                        />
 
                         <Text>Git Branch for Deployment</Text>
                         <br />
